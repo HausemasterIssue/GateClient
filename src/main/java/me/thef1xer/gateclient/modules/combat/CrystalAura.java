@@ -27,6 +27,7 @@ public class CrystalAura extends Module {
     private final FloatSetting breakDelay = new FloatSetting("Break Delay", "breakdelay", 1, 1, 10, 1);
     private final FloatSetting placeDistance = new FloatSetting("Place Distance", "placedistance", 4.5F, 0, 6, 0.1F);
     private final FloatSetting breakDistance = new FloatSetting("Break Distance", "breakdistance", 4.5F, 0, 6, 0.1F);
+    private final BooleanSetting dynamicInteract = new BooleanSetting("DynamicInteract", "dynamicinteract", true);
 
     private final Minecraft mc = Minecraft.getMinecraft();
     private int ticksSinceLastPlace = 0;
@@ -71,11 +72,15 @@ public class CrystalAura extends Module {
                     mc.player.connection.sendPacket(new CPacketPlayer.PositionRotation(mc.player.posX, mc.player.posY, mc.player.posZ, facingRotations[1], facingRotations[0], mc.player.onGround));
 
                     // Right-click the block to place it
-                    if (mc.playerController.processRightClickBlock(mc.player, mc.world, crystalFloorPos, EnumFacing.UP, hitVec, EnumHand.MAIN_HAND) == EnumActionResult.SUCCESS) {
+                    if (mc.playerController.processRightClickBlock(mc.player, mc.world, crystalFloorPos, EnumFacing.UP, hitVec, EnumHand.MAIN_HAND) == EnumActionResult.SUCCESS && dynamicInteract.getValue()) {
 
                         // If Right-click was successful, swing arm
                         mc.player.swingArm(EnumHand.MAIN_HAND);
 
+                    } else if (dynamicInteract.getValue() && crystalFloorPos.getY() > mc.player.getEntityBoundingBox().minY + mc.player.getEyeHeight()) {
+                        RayTraceResult lowestFace = mc.world.rayTraceBlocks(mc.player.getPositionEyes(1), hitVec);
+                        placeFace = (lowestFace == null || lowestFace.sideHit == null) ? EnumFacing.DOWN : lowestFace.sideHit;
+                        mc.playerController.processRightClickBlock(mc.player, mc.world, crystalFloorPos, placeFace, hitVec, EnumHand.MAIN_HAND);
                     }
 
                     ticksSinceLastPlace = 0;
